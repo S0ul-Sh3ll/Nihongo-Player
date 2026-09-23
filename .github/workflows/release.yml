@@ -49,32 +49,30 @@ jobs:
           brew install mpv
           echo "NIHONGO_LIBMPV=$(brew --prefix)/lib/libmpv.dylib" >> $GITHUB_ENV
 
-      - name: Download libmpv DLL (Windows)
+       - name: Download libmpv DLL (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # If this 404s, update the URL to a current shinchiro/mpv-dev build.
-          New-Item -ItemType Directory -Force -Path _win_libs
-          $headers = @{ "User-Agent" = "gh-actions" }
-          # Resolve the latest libmpv dev build (asset URL changes over time)
+          New-Item -ItemType Directory -Force -Path _win_libs | Out-Null
+          # Authenticate the API call to avoid shared-runner rate limits (403)
+          $headers = @{ "User-Agent" = "gh-actions"; "Authorization" = "Bearer $env:GH_TOKEN" }
           $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest" -Headers $headers
-          $asset = $rel.assets | Where-Object { $_.name -match "mpv-dev-x86_64-.*\.7z$" } | Select-Object -First 1
-          if (-not $asset) { Write-Error "No mpv-dev-x86_64 .7z asset in latest shinchiro release"; exit 1 }
-          Write-Host "Downloading $($asset.name) from $($asset.browser_download_url)"
-          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "_win_libs/mpv-dev.7z" -Headers $headers
-          7z x "_win_libs/mpv-dev.7z" -o"_win_libs" -y
-          $dll = $null
-          if (Test-Path "_win_libs/libmpv-2.dll") {
-            $dll = (Resolve-Path "_win_libs/libmpv-2.dll").Path
-          } elseif (Test-Path "_win_libs/mpv-2.dll") {
-            $dll = (Resolve-Path "_win_libs/mpv-2.dll").Path
-          } elseif (Test-Path "_win_libs/mpv-1.dll") {
-            $dll = (Resolve-Path "_win_libs/mpv-1.dll").Path
+          # Prefer the dated x86_64 dev build; avoid the -v3- (AVX2-only) variant
+          $asset = $rel.assets | Where-Object { $_.name -match "^mpv-dev-x86_64-\d.*\.7z$" } | Select-Object -First 1
+          if (-not $asset) { $asset = $rel.assets | Where-Object { $_.name -like "mpv-dev-x86_64-*.7z" -and $_.name -notlike "*-v3-*" } | Select-Object -First 1 }
+          if (-not $asset) { Write-Error "No mpv-dev-x86_64 .7z asset found"; $rel.assets.name; exit 1 }
+          Write-Host "Downloading $($asset.name)"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "_win_libs/mpv-dev.7z" -Headers @{ "User-Agent" = "gh-actions" }
+          7z x "_win_libs/mpv-dev.7z" -o"_win_libs" -y | Out-Null
+          # Find the runtime DLL wherever it landed
+          $dllItem = Get-ChildItem -Path _win_libs -Recurse -Include "libmpv-2.dll","mpv-2.dll","mpv-1.dll" | Select-Object -First 1
+          if (-not $dllItem) {
+            Write-Host "Extracted contents:"; Get-ChildItem -Recurse _win_libs | ForEach-Object { $_.FullName }
+            Write-Error "libmpv runtime DLL not found after extraction"; exit 1
           }
-          if (-not $dll) {
-            Write-Error "Neither mpv-2.dll nor libmpv-2.dll found in extracted archive!"
-            exit 1
-          }
+          $dll = $dllItem.FullName
           Write-Host "Found libmpv DLL at: $dll"
           "NIHONGO_LIBMPV_DLL=$dll" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
