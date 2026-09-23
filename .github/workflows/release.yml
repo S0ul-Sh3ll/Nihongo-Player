@@ -23,9 +23,6 @@ jobs:
           - os: macos-14
             asset_name: NihongoPlayer-macos-arm64.dmg
             arch: arm64
-          - os: macos-13
-            asset_name: NihongoPlayer-macos-x64.dmg
-            arch: x64
 
     steps:
       - name: Checkout repository
