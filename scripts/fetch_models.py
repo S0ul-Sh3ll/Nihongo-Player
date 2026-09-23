@@ -60,12 +60,14 @@ def fetch_and_convert_model(
 
         print("Installing transformers, torch, ctranslate2, sentencepiece in throwaway environment...")
         subprocess.run(
-            [str(venv_pip), "install", "--upgrade", "pip"],
+            [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
             check=True,
         )
         subprocess.run(
             [
-                str(venv_pip),
+                str(venv_python),
+                "-m",
+                "pip",
                 "install",
                 "transformers",
                 "torch",
