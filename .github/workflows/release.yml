@@ -55,27 +55,13 @@ jobs:
         run: |
           # If this 404s, update the URL to a current shinchiro/mpv-dev build.
           New-Item -ItemType Directory -Force -Path _win_libs
-          $urls = @(
-            "https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20241027-git-45642e3.7z/download",
-            "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20241027/mpv-dev-x86_64-20241027-git-45642e3.7z"
-          )
-          $downloaded = $false
-          foreach ($url in $urls) {
-            try {
-              Write-Host "Trying to download libmpv from $url ..."
-              Invoke-WebRequest -Uri $url -OutFile "_win_libs/mpv-dev.7z" -UserAgent "Mozilla/5.0" -TimeoutSec 120
-              if ((Get-Item "_win_libs/mpv-dev.7z").Length -gt 100000) {
-                $downloaded = $true
-                break
-              }
-            } catch {
-              Write-Warning "Failed to download from $url : $_"
-            }
-          }
-          if (-not $downloaded) {
-            Write-Error "Failed to download libmpv dev package from all URLs."
-            exit 1
-          }
+          $headers = @{ "User-Agent" = "gh-actions" }
+          # Resolve the latest libmpv dev build (asset URL changes over time)
+          $rel = Invoke-RestMethod -Uri "https://api.github.com/repos/shinchiro/mpv-winbuild-cmake/releases/latest" -Headers $headers
+          $asset = $rel.assets | Where-Object { $_.name -match "mpv-dev-x86_64-.*\.7z$" } | Select-Object -First 1
+          if (-not $asset) { Write-Error "No mpv-dev-x86_64 .7z asset in latest shinchiro release"; exit 1 }
+          Write-Host "Downloading $($asset.name) from $($asset.browser_download_url)"
+          Invoke-WebRequest -Uri $asset.browser_download_url -OutFile "_win_libs/mpv-dev.7z" -Headers $headers
           7z x "_win_libs/mpv-dev.7z" -o"_win_libs" -y
           $dll = $null
           if (Test-Path "_win_libs/libmpv-2.dll") {
@@ -95,9 +81,7 @@ jobs:
       - name: Install Python dependencies & PyInstaller
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
-          pip install -r requirements-dev.txt
-          pip install -r requirements.txt
+          pip install -e ".[asr]"
           pip install pyinstaller
 
       - name: Cache Opus-MT translation model
