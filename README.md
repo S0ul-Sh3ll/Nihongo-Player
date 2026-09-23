@@ -20,6 +20,9 @@
 
 ---
 
+<img width="1552" height="992" alt="screenshot" src="https://github.com/user-attachments/assets/f3a67ad3-56d3-4780-a6fd-cb178fc3912e" />
+
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action | Description |
