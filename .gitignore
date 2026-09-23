@@ -1,0 +1,77 @@
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Build & packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# IDE & Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Offline models & dictionary caches (downloaded on first run)
+models/
+dicts/
+data/
+.cache/
+*.ct2/
+*.sqlite
+*.db
+
+# PyInstaller / Distribution builds
+dist-bin/
+*.spec
+!packaging/*.spec
+
+# Local-only runtime libs (extracted libmpv for dev launcher)
+runtime-libs/
+
+# User media & subtitles (never commit test videos/subs to the repo)
+*.mp4
+*.mkv
+*.webm
+*.avi
+*.mov
+*.m4v
+*.srt
+*.ass
+*.ssa
+*.vtt
+*.wav
+*.mp3
+*.m4a
+# Downloaded ASR/MT model cache
+models/
