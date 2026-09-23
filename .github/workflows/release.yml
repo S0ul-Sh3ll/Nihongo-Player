@@ -95,9 +95,12 @@ jobs:
           path: models/
           key: models-opus-mt-${{ hashFiles('scripts/fetch_models.py') }}
 
-      - name: Fetch translation model
+      - name: Download translation model (pre-converted CT2, no torch)
+        shell: bash
         run: |
-          python scripts/fetch_models.py
+          python -m pip install -q huggingface_hub
+          python -c "from huggingface_hub import snapshot_download; snapshot_download('gaudi/opus-mt-ja-en-ctranslate2', local_dir='models/opus-ja-en-ct2')"
+          test -f models/opus-ja-en-ct2/model.bin
 
       - name: Build standalone application bundle with PyInstaller
         run: |
