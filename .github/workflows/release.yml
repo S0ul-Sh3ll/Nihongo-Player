@@ -1,0 +1,167 @@
+name: Build & Release (Windows / macOS / Linux)
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }} -> ${{ matrix.asset_name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: NihongoPlayer-linux-x64.tar.gz
+          - os: windows-latest
+            asset_name: NihongoPlayer-windows-x64.zip
+          - os: macos-14
+            asset_name: NihongoPlayer-macos-arm64.dmg
+            arch: arm64
+          - os: macos-13
+            asset_name: NihongoPlayer-macos-x64.dmg
+            arch: x64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install system libmpv (Ubuntu)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmpv2
+
+      - name: Install system mpv & export dylib path (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install mpv
+          echo "NIHONGO_LIBMPV=$(brew --prefix)/lib/libmpv.dylib" >> $GITHUB_ENV
+
+      - name: Download libmpv DLL (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # If this 404s, update the URL to a current shinchiro/mpv-dev build.
+          New-Item -ItemType Directory -Force -Path _win_libs
+          $urls = @(
+            "https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20241027-git-45642e3.7z/download",
+            "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20241027/mpv-dev-x86_64-20241027-git-45642e3.7z"
+          )
+          $downloaded = $false
+          foreach ($url in $urls) {
+            try {
+              Write-Host "Trying to download libmpv from $url ..."
+              Invoke-WebRequest -Uri $url -OutFile "_win_libs/mpv-dev.7z" -UserAgent "Mozilla/5.0" -TimeoutSec 120
+              if ((Get-Item "_win_libs/mpv-dev.7z").Length -gt 100000) {
+                $downloaded = $true
+                break
+              }
+            } catch {
+              Write-Warning "Failed to download from $url : $_"
+            }
+          }
+          if (-not $downloaded) {
+            Write-Error "Failed to download libmpv dev package from all URLs."
+            exit 1
+          }
+          7z x "_win_libs/mpv-dev.7z" -o"_win_libs" -y
+          $dll = $null
+          if (Test-Path "_win_libs/libmpv-2.dll") {
+            $dll = (Resolve-Path "_win_libs/libmpv-2.dll").Path
+          } elseif (Test-Path "_win_libs/mpv-2.dll") {
+            $dll = (Resolve-Path "_win_libs/mpv-2.dll").Path
+          } elseif (Test-Path "_win_libs/mpv-1.dll") {
+            $dll = (Resolve-Path "_win_libs/mpv-1.dll").Path
+          }
+          if (-not $dll) {
+            Write-Error "Neither mpv-2.dll nor libmpv-2.dll found in extracted archive!"
+            exit 1
+          }
+          Write-Host "Found libmpv DLL at: $dll"
+          "NIHONGO_LIBMPV_DLL=$dll" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install Python dependencies & PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Cache Opus-MT translation model
+        uses: actions/cache@v4
+        with:
+          path: models/
+          key: models-opus-mt-${{ hashFiles('scripts/fetch_models.py') }}
+
+      - name: Fetch translation model
+        run: |
+          python scripts/fetch_models.py
+
+      - name: Build standalone application bundle with PyInstaller
+        run: |
+          pyinstaller --clean -y packaging/nihongo_player.spec
+
+      - name: Package Linux release archive
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release
+          tar czf "release/${{ matrix.asset_name }}" -C dist NihongoPlayer
+
+      - name: Package Windows release archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Compress-Archive dist/NihongoPlayer/* "release/${{ matrix.asset_name }}"
+
+      - name: Package macOS DMG
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release
+          if [ -d "dist/NihongoPlayer.app" ]; then
+            hdiutil create -volname NihongoPlayer -srcfolder dist/NihongoPlayer.app -ov -format UDZO "release/${{ matrix.asset_name }}"
+          else
+            hdiutil create -volname NihongoPlayer -srcfolder dist/NihongoPlayer -ov -format UDZO "release/${{ matrix.asset_name }}"
+          fi
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: release/${{ matrix.asset_name }}
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: release/*
+          generate_release_notes: true
