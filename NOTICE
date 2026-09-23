@@ -1,0 +1,86 @@
+Nihongo Player
+Copyright (c) 2024 Nihongo Player Contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+==============================================================================
+Third-Party Licenses and Attributions
+==============================================================================
+
+1. JMdict, JMnedict, and KANJIDIC2 (Electronic Dictionary R&D Group)
+------------------------------------------------------------------------------
+This package uses the JMdict, JMnedict, and KANJIDIC dictionary files.
+These files are the property of the Electronic Dictionary Research and
+Development Group (EDRDG), and are used in conformance with the Group's licence:
+https://www.edrdg.org/edrdg/licence.html
+
+Licensed under Creative Commons Attribution-ShareAlike 3.0 / 4.0 Unported
+(CC-BY-SA 3.0 / CC-BY-SA 4.0):
+https://creativecommons.org/licenses/by-sa/3.0/
+https://creativecommons.org/licenses/by-sa/4.0/
+
+2. Helsinki-NLP / OPUS-MT Translation Model (opus-mt-ja-en)
+------------------------------------------------------------------------------
+Neural machine translation model trained by the Language Technology Research
+Group at the University of Helsinki (Helsinki-NLP):
+https://github.com/Helsinki-NLP/Opus-MT
+
+Licensed under the Apache License, Version 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+3. UniDic and UniDic-lite
+------------------------------------------------------------------------------
+UniDic morphological dictionary database:
+Copyright (c) 2011-2020 The UniDic Consortium. All rights reserved.
+
+Licensed under the BSD 3-Clause License:
+https://osdn.net/projects/unidic/
+
+4. Fugashi & MeCab
+------------------------------------------------------------------------------
+Fugashi: Copyright (c) Paul O'Leary McCann
+MeCab: Copyright (c) Taku Kudo and Nippon Telegraph and Telephone Corporation
+
+Licensed under the MIT License and BSD/LGPL/GPL tri-license.
+
+5. PySide6 (Qt for Python)
+------------------------------------------------------------------------------
+Copyright (C) 2023 The Qt Company Ltd.
+Licensed under the GNU Lesser General Public License version 3 (LGPL-3.0).
+
+6. libmpv & python-mpv
+------------------------------------------------------------------------------
+mpv media player library: Copyright (C) mpv developers
+Licensed under GNU General Public License version 2 or later (GPLv2+)
+and GNU Lesser General Public License version 2.1 or later (LGPLv2.1+).
+
+python-mpv: Copyright (c) Jonas Kümmerlin
+Licensed under the GNU General Public License version 3 (GPL-3.0) or later / MIT.
+
+7. CTranslate2 & SentencePiece
+------------------------------------------------------------------------------
+CTranslate2: Copyright (c) 2020 OpenNMT / Guillaume Klein. Licensed under MIT.
+SentencePiece: Copyright (c) Google Inc. Licensed under Apache License 2.0.
+
+8. pysubs2 & jaconv
+------------------------------------------------------------------------------
+pysubs2: Copyright (c) 2014-2020 Tomas Karabela. Licensed under BSD 3-Clause.
+jaconv: Copyright (c) 2014-2020 Motoki Naruse. Licensed under MIT License.
+
+9. Anime-Whisper, Kotoba-Whisper & faster-whisper
+------------------------------------------------------------------------------
+Anime-Whisper: Copyright (c) 2024 litagin / quantumcookie. Licensed under Apache 2.0.
+Kotoba-Whisper: Copyright (c) 2024 Kotoba Technologies, Inc. Licensed under MIT.
+faster-whisper: Copyright (c) 2023 Guillaume Klein / SYSTRAN. Licensed under MIT.
+

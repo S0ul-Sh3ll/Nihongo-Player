@@ -1,0 +1,80 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nihongo-player"
+version = "0.1.0"
+description = "A cross-platform Japanese-learning desktop video player."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "GPL-3.0-or-later"}
+authors = [
+    {name = "Nihongo Player Contributors"}
+]
+keywords = ["japanese", "language-learning", "video-player", "subtitles", "furigana", "mpv"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: X11 Applications :: Qt",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video :: Display",
+    "Topic :: Education",
+]
+dependencies = [
+    "PySide6-Essentials>=6.6.0",
+    "python-mpv>=1.0.5",
+    "pysubs2>=1.6.0",
+    "fugashi>=1.3.0",
+    "unidic-lite>=1.0.8",
+    "jaconv>=0.3.4",
+    "jamdict>=0.1a10",
+    "jamdict-data>=1.5",
+    "ctranslate2>=4.0.0",
+    "sentencepiece>=0.2.0",
+    "platformdirs>=4.0.0",
+    "reportlab>=4.0.0",
+    "genanki>=0.13.0",
+]
+
+[project.optional-dependencies]
+asr = [
+    "faster-whisper>=1.0.0",
+    "huggingface-hub>=0.20.0",
+]
+full = [
+    "PySide6-Essentials>=6.6.0",
+    "python-mpv>=1.0.5",
+    "pysubs2>=1.6.0",
+    "fugashi>=1.3.0",
+    "unidic-lite>=1.0.8",
+    "jaconv>=0.3.4",
+    "jamdict>=0.1a10",
+    "jamdict-data>=1.5",
+    "ctranslate2>=4.0.0",
+    "sentencepiece>=0.2.0",
+    "platformdirs>=4.0.0",
+    "reportlab>=4.0.0",
+    "genanki>=0.13.0",
+    "faster-whisper>=1.0.0",
+    "huggingface-hub>=0.20.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pyinstaller>=6.0.0",
+]
+
+[project.scripts]
+nihongo-player = "nihongo_player.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
