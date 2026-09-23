@@ -1,158 +1,108 @@
 #!/usr/bin/env python3
-"""Model acquisition and conversion script for Nihongo Player.
+"""Model acquisition script for Nihongo Player.
 
-Reproducibly converts Helsinki-NLP/opus-mt-ja-en to int8-quantized CTranslate2 format
-using an isolated throwaway virtual environment.
+Downloads the pre-converted CTranslate2 Japanese->English translation model
+(gaudi/opus-mt-ja-en-ctranslate2, derived from Helsinki-NLP/opus-mt-ja-en) from
+the Hugging Face Hub into models/opus-ja-en-ct2. No PyTorch/conversion required.
 """
 
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
-import subprocess
 import sys
-import tempfile
-import venv
 from pathlib import Path
+
+MODEL_FILES = [
+    "model.bin",
+    "config.json",
+    "shared_vocabulary.json",
+    "source.spm",
+    "target.spm",
+    "vocab.json",
+    "tokenizer_config.json",
+]
+REQUIRED = ["model.bin", "source.spm", "target.spm"]
 
 
 def is_model_present(model_dir: Path) -> bool:
-    """Check if valid CTranslate2 model files are already present."""
-    required_files = ["model.bin", "source.spm", "target.spm"]
-    return model_dir.is_dir() and all((model_dir / f).is_file() for f in required_files)
+    """Return True if the required CTranslate2 model files already exist."""
+    return model_dir.is_dir() and all((model_dir / f).is_file() for f in REQUIRED)
 
 
-def fetch_and_convert_model(
+def _ensure_hf_hub():
+    """Import huggingface_hub, installing it on the fly if missing."""
+    try:
+        from huggingface_hub import snapshot_download  # noqa: F401
+    except ImportError:
+        import subprocess
+
+        print("Installing huggingface_hub...")
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "huggingface-hub"], check=True
+        )
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download
+
+
+def fetch_model(
     output_dir: Path,
-    model_name: str = "Helsinki-NLP/opus-mt-ja-en",
-    quantization: str = "int8",
+    model_name: str = "gaudi/opus-mt-ja-en-ctranslate2",
     force: bool = False,
 ) -> None:
-    """Download and convert Helsinki-NLP translation model to CTranslate2 format.
-
-    Args:
-        output_dir: Destination directory for converted CT2 model.
-        model_name: HuggingFace model identifier.
-        quantization: Quantization type (e.g. 'int8', 'float16', 'float32').
-        force: Force re-download and re-conversion even if model is already present.
-    """
+    """Download the pre-converted CT2 translation model into output_dir."""
     output_dir = output_dir.resolve()
-
     if is_model_present(output_dir) and not force:
-        print(f"Model already present at {output_dir}. Skipping (use --force to re-generate).")
+        print(f"Model already present at {output_dir}. Skipping (use --force to re-download).")
         return
 
-    print(f"Generating CTranslate2 model from '{model_name}' (quantization: {quantization})...")
+    snapshot_download = _ensure_hf_hub()
+    print(f"Downloading pre-converted CT2 model '{model_name}' from Hugging Face...")
+    src = Path(snapshot_download(model_name))
+
     output_dir.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for name in MODEL_FILES:
+        s = src / name
+        if s.is_file():
+            shutil.copy2(s, output_dir / name)
+            copied += 1
+    print(f"Copied {copied} files to {output_dir}")
 
-    with tempfile.TemporaryDirectory(prefix="nihongo_model_venv_") as tmpdir:
-        venv_path = Path(tmpdir)
-        print(f"Creating isolated throwaway virtual environment in {venv_path}...")
-        venv.create(venv_path, with_pip=True)
-
-        if sys.platform == "win32":
-            venv_python = venv_path / "Scripts" / "python.exe"
-            venv_pip = venv_path / "Scripts" / "pip.exe"
-        else:
-            venv_python = venv_path / "bin" / "python"
-            venv_pip = venv_path / "bin" / "pip"
-
-        print("Installing transformers, torch, ctranslate2, sentencepiece in throwaway environment...")
-        subprocess.run(
-            [str(venv_python), "-m", "pip", "install", "--upgrade", "pip"],
-            check=True,
+    if not is_model_present(output_dir):
+        raise RuntimeError(
+            f"Download completed but required files are missing in {output_dir} "
+            f"(need: {', '.join(REQUIRED)})"
         )
-        subprocess.run(
-            [
-                str(venv_python),
-                "-m",
-                "pip",
-                "install",
-                "transformers",
-                "torch",
-                "ctranslate2",
-                "sentencepiece",
-            ],
-            check=True,
-        )
-
-        print(f"Running ct2-transformers-converter -> {output_dir}...")
-        converter_cmd = [
-            str(venv_python),
-            "-m",
-            "ctranslate2.converters.transformers",
-            "--model",
-            model_name,
-            "--output_dir",
-            str(output_dir),
-            "--quantization",
-            quantization,
-            "--copy_files",
-            "source.spm",
-            "target.spm",
-            "vocab.json",
-            "tokenizer_config.json",
-            "--force",
-        ]
-        subprocess.run(converter_cmd, check=True)
-
-    if is_model_present(output_dir):
-        print(f"Successfully generated CT2 model at {output_dir}")
-    else:
-        raise RuntimeError(f"Model conversion completed but missing expected files at {output_dir}")
+    print(f"Translation model ready at {output_dir}")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse command-line arguments."""
     project_root = Path(__file__).resolve().parent.parent
     default_output = project_root / "models" / "opus-ja-en-ct2"
-
     parser = argparse.ArgumentParser(
         prog="fetch_models.py",
-        description="Download and convert Opus-MT translation model to CTranslate2 int8 format.",
+        description="Download the pre-converted Opus-MT ja->en CTranslate2 model (no PyTorch needed).",
     )
-    parser.add_argument(
-        "--output-dir",
-        dest="output_dir",
-        type=Path,
-        default=default_output,
-        help=f"Target directory for converted CT2 model files (default: {default_output}).",
-    )
-    parser.add_argument(
-        "--model",
-        dest="model_name",
-        type=str,
-        default="Helsinki-NLP/opus-mt-ja-en",
-        help="HuggingFace model ID to convert (default: Helsinki-NLP/opus-mt-ja-en).",
-    )
-    parser.add_argument(
-        "--quantization",
-        dest="quantization",
-        type=str,
-        default="int8",
-        help="Quantization format: int8, float16, or float32 (default: int8).",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Force re-generation even if model files are already present.",
-    )
+    parser.add_argument("--output-dir", dest="output_dir", type=Path, default=default_output,
+                        help=f"Target directory for the CT2 model (default: {default_output}).")
+    parser.add_argument("--model", dest="model_name", type=str,
+                        default="gaudi/opus-mt-ja-en-ctranslate2",
+                        help="Hugging Face repo id of the pre-converted CT2 model.")
+    parser.add_argument("--force", action="store_true",
+                        help="Force re-download even if the model is already present.")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Main entrypoint for fetch_models script."""
+    """Entrypoint."""
     args = parse_args(argv)
     try:
-        fetch_and_convert_model(
-            output_dir=args.output_dir,
-            model_name=args.model_name,
-            quantization=args.quantization,
-            force=args.force,
-        )
+        fetch_model(output_dir=args.output_dir, model_name=args.model_name, force=args.force)
         return 0
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"Error fetching model: {exc}", file=sys.stderr)
         return 1
 
