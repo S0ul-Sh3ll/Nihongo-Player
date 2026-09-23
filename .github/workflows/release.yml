@@ -49,7 +49,7 @@ jobs:
           brew install mpv
           echo "NIHONGO_LIBMPV=$(brew --prefix)/lib/libmpv.dylib" >> $GITHUB_ENV
 
-       - name: Download libmpv DLL (Windows)
+      - name: Download libmpv DLL (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
