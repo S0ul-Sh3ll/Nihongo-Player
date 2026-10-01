@@ -2,7 +2,7 @@
 
 **Nihongo Player** is an open-source, desktop video player crafted specifically for Japanese language learners. Powered by PySide6 (Qt), libmpv, and offline natural language processing models, it provides real-time furigana (ruby readings) above kanji compounds, instant rewind into study mode, word-by-word dictionary breakdowns, and offline neural sentence translations.
 
-## (Linux one is working finle, installer for windows and mac has some issue which i'll fix in my free time, till then ask claude to help install in windows or mac)
+## (Linux one is working fine, installer for windows and mac has some issue which i'll fix in my free time, till then ask claude to help install in windows or mac)
 ---
 
 ## Features
